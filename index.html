@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>رأيك يهمنا – مدارك</title>
+<style>
+:root{--primary-blue:#1e3a8a;--teal:#0d9488;--bg:#f1f5f9;--ok:#16a34a;--bad:#dc2626}
+*{box-sizing:border-box}
+body{margin:0;font-family:"Segoe UI",Tahoma,Arial,sans-serif;background:var(--bg);color:#0f172a;line-height:1.8}
+header{background:linear-gradient(135deg,var(--primary-blue),var(--teal));color:#fff;text-align:center;padding:20px 12px}
+header h1{margin:0;font-size:1.6rem}
+header p{margin:4px 0 0;opacity:.95}
+main{max-width:760px;margin:0 auto;padding:14px}
+.card{background:#fff;border-radius:14px;box-shadow:0 2px 10px rgba(0,0,0,.08);padding:18px;margin-bottom:16px}
+.intro{border-right:6px solid var(--teal)}
+.sec{background:var(--primary-blue);color:#fff;padding:8px 14px;border-radius:10px;margin:20px 0 10px;font-weight:700}
+.q{font-weight:700;margin-bottom:6px}.qn{color:var(--teal)}
+.hint{font-weight:400;color:#64748b;font-size:.9rem}
+.opt{display:flex;align-items:center;gap:10px;border:2px solid #e2e8f0;border-radius:10px;padding:8px 12px;margin:7px 0;cursor:pointer}
+.opt:hover{border-color:var(--teal)}.opt.sel{border-color:var(--primary-blue);background:#eff6ff}
+.opt input{width:18px;height:18px}
+.row{display:flex;gap:6px;flex-wrap:wrap}.row .opt{flex:1;min-width:56px;justify-content:center;flex-direction:column;gap:0;text-align:center}
+textarea,input[type=text]{width:100%;padding:12px;font-size:1rem;border:2px solid #cbd5e1;border-radius:10px;font-family:inherit}
+input[type=text]{text-align:center;font-size:1.1rem;margin:10px 0}
+button{background:var(--primary-blue);color:#fff;border:0;border-radius:10px;padding:13px 22px;font-size:1.05rem;cursor:pointer;width:100%}
+button:disabled{opacity:.6;cursor:not-allowed}
+.err{color:var(--bad);font-weight:700;min-height:1.5em;text-align:center}
+.card.missing{outline:3px solid var(--bad)}
+.hidden{display:none}
+.done{text-align:center;font-size:1.2rem;font-weight:700}
+</style>
+</head>
+<body>
+<header>
+  <h1>مدارك 💙 رأيك يهمنا</h1>
+  <p>لكل طالب طريقة</p>
+</header>
+<main>
+  <section id="login-section" class="card">
+    <h2 style="margin-top:0;color:var(--primary-blue)">ادخل كودك للبدء</h2>
+    <input id="sid" type="text" inputmode="numeric" placeholder="" autocomplete="off">
+    <div id="login-err" class="err"></div>
+    <button id="login-btn">تحقق ودخول</button>
+  </section>
+
+  <section id="form-section" class="hidden">
+    <div class="card intro">
+      <h2 id="welcome" style="margin-top:0;color:var(--primary-blue)"></h2>
+      <p>رأيك الصريح هو أهم شيء عندنا 🌟 أنت لست مجرد طالب في «مدارك»، أنت شريكنا في تطويرها. كل إجابة ستساعدنا نجعل حصص الفيزياء والرياضيات أسهل وأمتع وأقرب لطريقتك أنت.</p>
+      <p style="margin-bottom:0">لا توجد إجابة صح أو غلط، قل ما تشعر به بكل أريحية، وتأكد أننا نقرأ كل كلمة بحب واهتمام 🙏 (يستغرق ٣ دقائق فقط)</p>
+    </div>
+    <div id="questions"></div>
+    <div id="submit-err" class="err"></div>
+    <button id="submit-btn">إرسال رأيي 🚀</button>
+    <div id="done" class="card done hidden"></div>
+  </section>
+</main>
+
+<script>
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzSAFcPEXqQfaFu4P2x1XTgBNsWb_V7OA9AjW_5HBfKB17nL_YcY4iE58AH3bObx5k/exec";
+
+const SECTIONS = [
+ {title:"📘 تجربة التعلم والشرح", qs:[
+  {id:"clarity", t:"كيف تجد وضوح الشرح وتبسيط الأفكار الصعبة (مثل قانون كولوم أو النهايات)؟", o:["ممتاز، أفهم كل شيء بسهولة 🤩","جيد، أفهم معظم الأفكار 🙂","متوسط، بعض الأفكار تحتاج وقتاً 🤔","أحتاج توضيحاً أكثر في الشرح 🙏"]},
+  {id:"onenote", t:"هل اللوحات الرقمية والشرح المرئي (OneNote) تساعدك على الفهم بشكل أفضل؟", o:["نعم، تساعدني كثيراً ✨","تساعدني إلى حد ما","لا تفرق معي","أفضّل طريقة أخرى (اكتبها في آخر الاستبيان)"]},
+  {id:"physicsPace", t:"وتيرة وسرعة الشرح في حصة الفيزياء  ⚡", o:["سريعة جداً","مناسبة لي تماماً","بطيئة قليلاً"]},
+  {id:"mathPace", t:"وتيرة وسرعة الشرح في حصة الرياضيات  📐", o:["سريعة جداً","مناسبة لي تماماً","بطيئة قليلاً"]}
+ ]},
+ {title:"🤝 التفاعل والدعم", qs:[
+  {id:"interaction", t:"كيف تقيّم تفاعلك وطرحك للأسئلة أثناء الحصة؟", o:["أسأل كلما احتجت دون تردد 💪","أسأل أحياناً","نادراً ما أسأل","أتردد في السؤال وأتمنى أن أتشجع أكثر"]},
+  {id:"confidence", t:"هل تلاحظ تحسناً في ثقتك وحلّك للمسائل مقارنة ببداية انضمامك؟", o:["نعم، تحسن كبير 🚀","تحسن بسيط ولكنه ملحوظ","مستواي كما هو","لم ألاحظ تحسناً بعد، وأحتاج دعماً"]},
+  {id:"rating", t:"بشكل عام، ما مدى رضاك عن تجربتك مع «مدارك»؟", row:true, o:["1 😕","2 😐","3 🙂","4 😃","5 🤩"]}
+ ]},
+ {title:"💬 رأيك بصراحة (الأهم)", qs:[
+  {id:"likes", t:"ما أكثر شيء يعجبك في طريقة التدريس والحصص حالياً؟ 💙", text:true, req:true},
+  {id:"change", t:"ما الشيء الذي تتمنى أن نغيّره أو نعدّله في الحصص القادمة؟ ✏️", text:true, req:true},
+  {id:"suggestions", t:"أي اقتراحات أو طلبات خاصة تود إضافتها؟ 💡", hint:"(اختياري)", text:true}
+ ]}
+];
+
+// تحويل الاستبيان إلى حقول electronic_evaluations: tag = اسم المحور، weak = أرقام الخيارات التي تُعد نقطة ضعف
+const META = {
+  clarity:{tag:"وضوح الشرح",weak:[2,3]}, onenote:{tag:"اللوحات الرقمية OneNote",weak:[3]},
+  physicsPace:{tag:"وتيرة شرح الفيزياء",weak:[0,2]}, mathPace:{tag:"وتيرة شرح الرياضيات",weak:[0,2]},
+  interaction:{tag:"التفاعل وطرح الأسئلة",weak:[2,3]}, confidence:{tag:"الثقة والتحسن",weak:[2,3]},
+  rating:{tag:"الرضا العام"}, likes:{tag:"ما يعجبه"}, change:{tag:"ما يتمنى تغييره"}, suggestions:{tag:"اقتراحات"}
+};
+const FORM_META = {subject:"منصة مدارك", module:"استبيان رأي وتغذية راجعة", lesson:"تقييم تجربة الطالب", type:"استبيان"};
+const T0 = Date.now();
+const $ = id => document.getElementById(id);
+let studentId = "", studentName = "", sent = false, n = 0;
+
+function render(){
+  $('questions').innerHTML = SECTIONS.map(s => `<div class="sec">${s.title}</div>` + s.qs.map(q => {
+    n++;
+    const body = q.text
+      ? `<textarea rows="4" name="${q.id}" placeholder="اكتب هنا بحرية..."></textarea>`
+      : `<div class="${q.row?'row':''}">` + q.o.map((o,j)=>`<label class="opt"><input type="radio" name="${q.id}" value="${j}"><span>${o}</span></label>`).join('') + `</div>`;
+    return `<div class="card" id="c_${q.id}"><div class="q"><span class="qn">${n}.</span> ${q.t} <span class="hint">${q.hint||''}</span></div>${body}</div>`;
+  }).join('')).join('');
+  document.querySelectorAll('.opt input').forEach(r => r.addEventListener('change', () => {
+    const card = r.closest('.card');
+    card.querySelectorAll('.opt').forEach(o => o.classList.remove('sel'));
+    r.closest('.opt').classList.add('sel');
+    card.classList.remove('missing');
+  }));
+}
+
+$('login-btn').addEventListener('click', login);
+$('sid').addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
+
+async function login(){
+  const id = $('sid').value.trim(), err = $('login-err'); err.textContent = '';
+  if (!id){ err.textContent = 'الكود غير صحيح'; return; }
+  const btn = $('login-btn'); btn.disabled = true; btn.textContent = 'جارٍ التحقق...';
+  try{
+    const data = await (await fetch(`${SCRIPT_URL}?student_id=${encodeURIComponent(id)}`)).json();
+    if (data && data.valid){
+      studentId = id; studentName = data.student_name || '';
+      $('login-section').classList.add('hidden');
+      $('form-section').classList.remove('hidden');
+      $('welcome').textContent = `أهلاً ${studentName} 👋`;
+      render();
+    } else err.textContent = (data && data.error) ? data.error : 'الكود غير مسجل في قاعدة البيانات.';
+  }catch(e){ err.textContent = 'تعذر الاتصال بالخادم، حاول مرة أخرى.'; }
+  btn.disabled = false; btn.textContent = 'تحقق ودخول';
+}
+
+$('submit-btn').addEventListener('click', submit);
+
+async function submit(){
+  if (sent) return;
+  const answers = {}, details = [], weaknesses = []; let firstMissing = null, num = 0, score = 0;
+  SECTIONS.forEach(s => s.qs.forEach(q => {
+    num++; let v = '', idx = null;
+    if (q.text) v = document.querySelector(`[name="${q.id}"]`).value.trim();
+    else { const c = document.querySelector(`input[name="${q.id}"]:checked`); if (c) idx = +c.value; v = c ? q.o[idx] : ''; }
+    answers[q.id] = v;
+    const m = META[q.id] || {};
+    details.push({q:num, question:q.t, answer:v, tag:m.tag || q.id});
+    if (q.id === 'rating' && idx !== null) score = idx + 1;
+    if (idx !== null && m.weak && m.weak.includes(idx)) weaknesses.push(m.tag);
+    if (!v && (!q.text || q.req)){ $('c_'+q.id).classList.add('missing'); if (!firstMissing) firstMissing = $('c_'+q.id); }
+  }));
+  const err = $('submit-err');
+  if (firstMissing){ err.textContent = 'من فضلك أجب عن الأسئلة المظللة بالأحمر 🙏'; firstMissing.scrollIntoView({behavior:'smooth',block:'center'}); return; }
+  err.textContent = '';
+  const btn = $('submit-btn'); btn.disabled = true; btn.textContent = 'جارٍ الإرسال...'; sent = true;
+  const payload = {studentId, subject:FORM_META.subject, module:FORM_META.module, lesson:FORM_META.lesson,
+    assessmentType:FORM_META.type, score, total:5, timeSeconds:Math.round((Date.now()-T0)/1000), weaknesses, details};
+  let ok = false;
+  try{
+    const r = await fetch(SCRIPT_URL, {method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body:JSON.stringify(payload)});
+    await r.text(); ok = true;
+  }catch(e){
+    try{ await fetch(SCRIPT_URL, {method:'POST', mode:'no-cors', headers:{'Content-Type':'text/plain;charset=utf-8'}, body:JSON.stringify(payload)}); ok = true; }catch(e2){}
+  }
+  if (ok){
+    btn.classList.add('hidden');
+    const d = $('done'); d.classList.remove('hidden');
+    d.innerHTML = `شكراً لك يا ${studentName} 💙<br><span style="font-weight:400">وصلنا رأيك وسنعمل عليه بإذن الله. «مدارك» بك أجمل!</span>`;
+    d.scrollIntoView({behavior:'smooth'});
+  } else {
+    sent = false; btn.disabled = false; btn.textContent = 'إرسال رأيي 🚀';
+    err.textContent = 'تعذر الإرسال، تأكد من الإنترنت وحاول مرة أخرى.';
+  }
+}
+</script>
+</body>
+</html>
