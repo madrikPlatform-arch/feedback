@@ -65,7 +65,7 @@ const SECTIONS = [
   {id:"clarity", t:"كيف تجد وضوح الشرح وتبسيط الأفكار الصعبة (مثل قانون كولوم أو النهايات)؟", o:["ممتاز، أفهم كل شيء بسهولة 🤩","جيد، أفهم معظم الأفكار 🙂","متوسط، بعض الأفكار تحتاج وقتاً 🤔","أحتاج توضيحاً أكثر في الشرح 🙏"]},
   {id:"onenote", t:"هل اللوحات الرقمية والشرح المرئي (OneNote) تساعدك على الفهم بشكل أفضل؟", o:["نعم، تساعدني كثيراً ✨","تساعدني إلى حد ما","لا تفرق معي","أفضّل طريقة أخرى (اكتبها في آخر الاستبيان)"]},
   {id:"physicsPace", t:"وتيرة وسرعة الشرح في حصة الفيزياء  ⚡", o:["سريعة جداً","مناسبة لي تماماً","بطيئة قليلاً"]},
-  {id:"mathPace", t:"وتيرة وسرعة الشرح في حصة الرياضيات  📐", o:["سريعة جداً","مناسبة لي تماماً","بطيئة قليلاً"]}
+  {id:"mathPace", t:"وتيرة وسرعة الشرح في حصة الرياضيات 📐", o:["سريعة جداً","مناسبة لي تماماً","بطيئة قليلاً"]}
  ]},
  {title:"🤝 التفاعل والدعم", qs:[
   {id:"interaction", t:"كيف تقيّم تفاعلك وطرحك للأسئلة أثناء الحصة؟", o:["أسأل كلما احتجت دون تردد 💪","أسأل أحياناً","نادراً ما أسأل","أتردد في السؤال وأتمنى أن أتشجع أكثر"]},
@@ -131,12 +131,12 @@ $('submit-btn').addEventListener('click', submit);
 
 async function submit(){
   if (sent) return;
-  const answers = {}, details = [], weaknesses = []; let firstMissing = null, num = 0, score = 0;
+  const answers = {}, details = [], weaknesses = [], ordered = []; let firstMissing = null, num = 0, score = 0;
   SECTIONS.forEach(s => s.qs.forEach(q => {
     num++; let v = '', idx = null;
     if (q.text) v = document.querySelector(`[name="${q.id}"]`).value.trim();
     else { const c = document.querySelector(`input[name="${q.id}"]:checked`); if (c) idx = +c.value; v = c ? q.o[idx] : ''; }
-    answers[q.id] = v;
+    answers[q.id] = v; ordered.push(v);
     const m = META[q.id] || {};
     details.push({q:num, question:q.t, answer:v, tag:m.tag || q.id});
     if (q.id === 'rating' && idx !== null) score = idx + 1;
@@ -147,14 +147,20 @@ async function submit(){
   if (firstMissing){ err.textContent = 'من فضلك أجب عن الأسئلة المظللة بالأحمر 🙏'; firstMissing.scrollIntoView({behavior:'smooth',block:'center'}); return; }
   err.textContent = '';
   const btn = $('submit-btn'); btn.disabled = true; btn.textContent = 'جارٍ الإرسال...'; sent = true;
+  const flat = t => String(t).replace(/\s*\n\s*/g, ' ');
+  const summary = SECTIONS.flatMap(x => x.qs).map(q => `${(META[q.id]||{}).tag || q.id}: ${flat(answers[q.id] || '-')}`).join(' | ');
   const payload = {studentId, subject:FORM_META.subject, module:FORM_META.module, lesson:FORM_META.lesson,
-    assessmentType:FORM_META.type, score, total:5, timeSeconds:Math.round((Date.now()-T0)/1000), weaknesses, details};
-  let ok = false;
+    assessmentType:FORM_META.type, score, total:5, timeSeconds:Math.round((Date.now()-T0)/1000), weaknesses:[summary], details, answers, answersOrdered:ordered};
+  let ok = false, why = '';
+  const H = {'Content-Type':'text/plain;charset=utf-8'}, B = JSON.stringify(payload);
   try{
-    const r = await fetch(SCRIPT_URL, {method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body:JSON.stringify(payload)});
-    await r.text(); ok = true;
+    const r = await fetch(SCRIPT_URL, {method:'POST', headers:H, body:B});
+    const txt = await r.text();
+    try{ const j = JSON.parse(txt); ok = !(j && (j.error || j.success === false)); if (!ok) why = j.error || 'خطأ في الخادم'; }
+    catch(pe){ ok = true; }
   }catch(e){
-    try{ await fetch(SCRIPT_URL, {method:'POST', mode:'no-cors', headers:{'Content-Type':'text/plain;charset=utf-8'}, body:JSON.stringify(payload)}); ok = true; }catch(e2){}
+    try{ await fetch(SCRIPT_URL, {method:'POST', mode:'no-cors', headers:H, body:B}); ok = true; }
+    catch(e2){ why = 'تعذر الاتصال بالإنترنت'; }
   }
   if (ok){
     btn.classList.add('hidden');
@@ -163,7 +169,7 @@ async function submit(){
     d.scrollIntoView({behavior:'smooth'});
   } else {
     sent = false; btn.disabled = false; btn.textContent = 'إرسال رأيي 🚀';
-    err.textContent = 'تعذر الإرسال، تأكد من الإنترنت وحاول مرة أخرى.';
+    err.textContent = 'تعذر الإرسال: ' + why;
   }
 }
 </script>
